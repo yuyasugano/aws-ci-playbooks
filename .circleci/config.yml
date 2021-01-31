@@ -4,7 +4,7 @@ version: 2.1
 # Each job requires specifying an executor(either docker, macos, or machine),
 # see circleci.com/docs/2.0/executor-types/ for a comparison and more examples.
 executors:
-  terraform-executor:
+  docker-executor:
     docker:
       - image: circleci/python:3.6.2
     environment:
@@ -13,7 +13,7 @@ executors:
 
 jobs:
   build:
-    executor: terraform-executor
+    executor: docker-executor
     parallelism: 1
     steps:
       - checkout
@@ -37,13 +37,15 @@ jobs:
           name: terraform plan
           command: terraform plan
           working_directory: main/
-  deploy:
-    executor: terraform-executor
-    steps:
-      - checkout
       - run:
           name: terraform apply
-          command: 'terraform apply'
+          command: terraform apply
+          working_directory: main/
+  deploy:
+    executor: docker-executor
+    steps:
+      - checkout
+      - add_ssh_keys:
 
 # Use a package of configuration called an orb.
 # orbs:
