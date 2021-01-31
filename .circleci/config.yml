@@ -31,7 +31,7 @@ jobs:
           command: sudo cp -fR ~/.local/bin/* /usr/local/bin
       - run:
           name: terraform init backend
-          command: terraform init -backend-config="bucket=${TF_BUCKET} -backend-config="key=${TF_KEY}" -backend-config="region=${TF_REGION}"
+          command: terraform init -backend-config="bucket=${TF_BUCKET}" -backend-config="key=${TF_KEY}" -backend-config="region=${TF_REGION}"
           working_directory: main/
       - run:
           name: terraform plan
