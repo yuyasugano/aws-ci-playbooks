@@ -6,9 +6,6 @@ provider "aws" {
 terraform {
   required_version = "0.12.6"
   backend "s3" {
-    bucket = "tfstate-workflow-test"
-    key = "sample-ec2/terraform.tfstate"
-    region = "ap-northeast-1"
   }
 }
 

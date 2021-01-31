@@ -1,1 +1,1 @@
-ec2_name = "ExampleInstance"
+ec2_name="ExampleInstance"
