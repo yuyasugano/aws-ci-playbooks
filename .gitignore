@@ -7,4 +7,3 @@
 # Ignore build files.
 main/.terraform/*
 main/example
-main/example.pub
