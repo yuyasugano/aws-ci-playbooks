@@ -120,13 +120,13 @@ workflows:
           filters:
             branches:
               only: master
-#      - plan-destroy:
-#          requires:
-#            - apply
-#      - hold-destroy:
-#          type: approval
-#          requires:
-#            - plan-destroy
-#      - destroy:
-#          requires:
-#            - hold-destroy
+      - plan-destroy:
+          requires:
+            - apply
+      - hold-destroy:
+          type: approval
+          requires:
+            - plan-destroy
+      - destroy:
+          requires:
+            - hold-destroy
