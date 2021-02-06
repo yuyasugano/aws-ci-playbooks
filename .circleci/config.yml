@@ -4,14 +4,75 @@ version: 2.1
 # Each job requires specifying an executor(either docker, macos, or machine),
 # see circleci.com/docs/2.0/executor-types/ for a comparison and more examples.
 executors:
-  docker-executor:
+  docker-executor: # provision a docker image and install terraform
     docker:
       - image: circleci/python:3.6.2
     environment:
       TERRAFORM_VER: 0.12.6
       AWS_DEFAULT_REGION: ap-northeast-1
+  terraform-executor:
+    docker:
+      - image: hashicorp/terraform:0.12.6
+    environment:
+      AWS_DEFAULT_REGION: ap-northeast-1
 
 jobs:
+  plan-apply:
+    working_directory: main/
+    executor: terraform-executor
+    parallelism: 1
+    steps:
+      - checkout
+      - run:
+          name: terraform init & plan
+          command: |
+            terraform init -input=false -backend-config="bucket=${TF_BUCKET}" -backend-config="key=${TF_KEY}" -backend-config="region=${TF_REGION}"
+            terraform plan
+      - persist_to_workspace:
+          root: .
+          paths:
+            - .
+  apply:
+    working_directory: main/
+    executor: terraform-executor
+    parallelism: 1
+    steps:
+      - attach_workspace:
+          at: .
+      - run:
+          name: terraform
+          command: |
+            terraform apply -auto-approve
+      - persist_to_workspace:
+          root: .
+          paths:
+            - .
+  plan-destroy:
+    working_directory: main/
+    executor: terraform-executor
+    parallelism: 1
+    steps:
+      - attach_workspace:
+          at: .
+      - run:
+          name: terraform create destroy plan
+          command: |
+            terraform plan -destroy
+      - persist_to_workspace:
+          root: .
+          paths:
+            - .
+  destroy:
+    working_directory: main/
+    executor: terraform-executor
+    parallelism: 1
+    steps:
+      - attach_workspace:
+          at: .
+      - run:
+          name: terraform destroy
+          command: |
+            terraform destroy -auto-approve 
   build:
     executor: docker-executor
     parallelism: 1
@@ -21,8 +82,7 @@ jobs:
           name: install terraform
           command: |
             if [[ ! -f ~/.local/bin/terraform ]]; then
-              mkdir -p ~/.local/bin
-              cd ~/.local/bin
+              mkdir -p ~/.local/bin & cd ~/.local/bin
               curl -LO https://releases.hashicorp.com/terraform/${TERRAFORM_VER}/terraform_${TERRAFORM_VER}_linux_amd64.zip
               unzip -o terraform_${TERRAFORM_VER}_linux_amd64.zip
             fi
@@ -31,21 +91,8 @@ jobs:
           command: sudo cp -fR ~/.local/bin/* /usr/local/bin
       - run:
           name: terraform init backend
-          command: terraform init -backend-config="bucket=${TF_BUCKET}" -backend-config="key=${TF_KEY}" -backend-config="region=${TF_REGION}"
+          command: terraform init -input=false -backend-config="bucket=${TF_BUCKET}" -backend-config="key=${TF_KEY}" -backend-config="region=${TF_REGION}"
           working_directory: main/
-      - run:
-          name: terraform plan
-          command: terraform plan
-          working_directory: main/
-      - run:
-          name: terraform apply
-          command: terraform apply
-          working_directory: main/
-  deploy:
-    executor: docker-executor
-    steps:
-      - checkout
-      # - add_ssh_keys:
 
 # Use a package of configuration called an orb.
 # orbs:
@@ -60,12 +107,29 @@ workflows:
     # Run the welcome/run job in its own container
     # jobs:
     #   - welcome/run
-  workflows:
+  plan_approve_apply:
     jobs:
-      - build
+      - plan-apply
+      - hold-apply:
+          type: approval
+          requires:
+            - plan-apply
+      - apply:
+          requires:
+            - hold-apply
       - deploy:
           requires:
-            - build
+            - apply
           filters:
             branches:
-              only: master
+              only: main
+#      - plan-destroy:
+#          requires:
+#            - apply
+#      - hold-destroy:
+#          type: approval
+#          requires:
+#            - plan-destroy
+#      - destroy:
+#          requires:
+#            - hold-destroy
