@@ -26,7 +26,7 @@ jobs:
       - run:
           name: terraform init & plan
           command: |
-            terraform init -input=false -backend-config="bucket=${TF_BUCKET}" -backend-config="key=${TF_KEY}" -backend-config="region=${TF_REGION}"
+            terraform init -backend-config="bucket=${TF_BUCKET}" -backend-config="key=${TF_KEY}" -backend-config="region=${TF_REGION}"
             terraform plan
       - persist_to_workspace:
           root: .
@@ -91,7 +91,7 @@ jobs:
           command: sudo cp -fR ~/.local/bin/* /usr/local/bin
       - run:
           name: terraform init backend
-          command: terraform init -input=false -backend-config="bucket=${TF_BUCKET}" -backend-config="key=${TF_KEY}" -backend-config="region=${TF_REGION}"
+          command: terraform init -backend-config="bucket=${TF_BUCKET}" -backend-config="key=${TF_KEY}" -backend-config="region=${TF_REGION}"
           working_directory: main/
 
 # Use a package of configuration called an orb.
