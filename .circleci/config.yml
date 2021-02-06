@@ -117,12 +117,9 @@ workflows:
       - apply:
           requires:
             - hold-apply
-      - deploy:
-          requires:
-            - apply
           filters:
             branches:
-              only: main
+              only: master
 #      - plan-destroy:
 #          requires:
 #            - apply
