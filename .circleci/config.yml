@@ -17,7 +17,7 @@ executors:
       AWS_DEFAULT_REGION: ap-northeast-1
 
 jobs:
-  plan-apply:
+  default-plan-apply:
     working_directory: main/
     executor: terraform-executor
     parallelism: 1
@@ -27,12 +27,19 @@ jobs:
           name: terraform init & plan
           command: |
             terraform init -backend-config="bucket=${TF_BUCKET}" -backend-config="key=${TF_KEY}" -backend-config="region=${TF_REGION}"
-            terraform plan
+      - run:
+          name: terraform workspace
+          command: |
+            terraform workspace new default
+            terraform workspace select default
+      - run:
+          name: terraform plan
+          command: terraform plan -var-file=terraform.tfvars.default
       - persist_to_workspace:
           root: .
           paths:
             - .
-  apply:
+  default-apply:
     working_directory: main/
     executor: terraform-executor
     parallelism: 1
@@ -42,12 +49,12 @@ jobs:
       - run:
           name: terraform
           command: |
-            terraform apply -auto-approve
+            terraform apply -var-file=terraform.tfvars.default -auto-approve
       - persist_to_workspace:
           root: .
           paths:
             - .
-  plan-destroy:
+  default-plan-destroy:
     working_directory: main/
     executor: terraform-executor
     parallelism: 1
@@ -57,12 +64,12 @@ jobs:
       - run:
           name: terraform create destroy plan
           command: |
-            terraform plan -destroy
+            terraform plan -destroy -var-file=terraform.tfvars.default
       - persist_to_workspace:
           root: .
           paths:
             - .
-  destroy:
+  default-destroy:
     working_directory: main/
     executor: terraform-executor
     parallelism: 1
@@ -72,7 +79,7 @@ jobs:
       - run:
           name: terraform destroy
           command: |
-            terraform destroy -auto-approve 
+            terraform destroy -var-file=terraform.tfvars.default -auto-approve 
   build:
     executor: docker-executor
     parallelism: 1
@@ -109,24 +116,33 @@ workflows:
     #   - welcome/run
   plan_approve_apply:
     jobs:
-      - plan-apply
-      - hold-apply:
-          type: approval
-          requires:
-            - plan-apply
-      - apply:
-          requires:
-            - hold-apply
+      - default-plan-apply
           filters:
             branches:
               only: master
-      - plan-destroy:
-          requires:
-            - apply
-      - hold-destroy:
+      - default-hold-apply:
           type: approval
           requires:
-            - plan-destroy
-      - destroy:
+            - default-plan-apply
+      - default-apply:
           requires:
-            - hold-destroy
+            - default-hold-apply
+          filters:
+            branches:
+              only: master
+      - default-plan-destroy:
+          requires:
+            - default-apply
+          filters:
+            branches:
+              only: master
+      - default-hold-destroy:
+          type: approval
+          requires:
+            - default-plan-destroy
+      - default-destroy:
+          requires:
+            - default-hold-destroy
+          filters:
+            branches:
+              only: master
